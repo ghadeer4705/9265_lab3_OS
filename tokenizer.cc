@@ -1,14 +1,42 @@
 #include "tokenizer.h"
 #include <sstream>
 #include <iostream>
+#include <cctype>
 
+static bool readWord(const std::string &input, size_t &i, std::string &word, bool &quoted)
+{
+    word.clear();
+    quoted = false;
+
+    while (i < input.size() && isspace((unsigned char)input[i]))
+        i++;
+
+    if (i >= input.size())
+        return false;
+
+    while (i < input.size() && !isspace((unsigned char)input[i]))
+    {
+        if (input[i] == '"' || input[i] == '\'')
+        {
+            char quote = input[i++];
+            quoted = true;
+            while (i < input.size() && input[i] != quote)
+                word += input[i++];
+            if (i < input.size())
+                i++;
+        }
+        else
+            word += input[i++];
+    }
+    return true;
+}
 std::vector<Token> tokenize(const std::string &input)
 {
     std::vector<Token> tokens;
-    std::istringstream stream(input);
     std::string word;
-
-    while (stream >> word)
+    bool quoted;
+    size_t pos = 0;
+    while (readWord(input, pos, word, quoted))
     {
         Token token;
 
@@ -34,10 +62,10 @@ std::vector<Token> tokenize(const std::string &input)
                     if (prev.type == TOKEN_REDIRECT ||
                         prev.type == TOKEN_APPEND ||
                         prev.type == TOKEN_INPUT ||
-                        prev.type == TOKEN_ERROR || 
+                        prev.type == TOKEN_ERROR ||
                         prev.type == TOKEN_REDIRECT_AND_ERROR ||
-                        prev.type == TOKEN_COMMAND || 
-                        prev.type == TOKEN_ARGUMENT || 
+                        prev.type == TOKEN_COMMAND ||
+                        prev.type == TOKEN_ARGUMENT ||
                         word[0] == '-' ||
                         word.find('/') != std::string::npos ||
                         word.find('.') != std::string::npos
