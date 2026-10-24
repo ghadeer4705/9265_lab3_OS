@@ -48,6 +48,14 @@ void parse(std::vector<Token> &tokens)
         }
         else if (tokens[i].type == TOKEN_PIPE)
         {
+ if (currentSimpleCommand->_numberOfArguments == 0)
+    {
+        std::cout << "Syntax error: missing command before pipe" << std::endl;
+        delete currentSimpleCommand;
+        currentCommand.clear();
+        return;
+    }
+
             currentCommand.insertSimpleCommand(currentSimpleCommand);
             currentSimpleCommand = new SimpleCommand();
         }
@@ -94,7 +102,14 @@ void parse(std::vector<Token> &tokens)
             currentCommand._background = 1;
         }
     }
-
+if (tokens.size() > 2 &&
+    tokens[tokens.size() - 2].type == TOKEN_PIPE)
+{
+    std::cout << "Syntax error: missing command after pipe" << std::endl;
+    delete currentSimpleCommand;
+    currentCommand.clear();
+    return;
+}
     if (currentSimpleCommand->_numberOfArguments > 0)
     {
         currentCommand.insertSimpleCommand(currentSimpleCommand);
