@@ -278,6 +278,11 @@ void Command::execute()
     int pipefd[2];
     int prev = -1;
     std::vector<pid_t> pids;
+    sigset_t chld_set, old_mask;
+    sigemptyset(&chld_set);
+    sigaddset(&chld_set, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &chld_set, &old_mask);
+
 
     for (int i = 0; i < n; i++)
     {
@@ -297,7 +302,8 @@ void Command::execute()
 
         if (pid == 0)
         {
-            signal(SIGINT, SIG_DFL);
+        sigprocmask(SIG_SETMASK, &old_mask, NULL);
+        signal(SIGINT, SIG_DFL);
 
             if (prev != -1)
             {
@@ -344,16 +350,31 @@ void Command::execute()
 
     if (prev != -1)
         close(prev);
-
     if (!_background)
     {
-
         for (size_t k = 0; k < pids.size(); k++)
         {
-            siginfo_t info;
-            waitid(P_PID, pids[k], &info, WEXITED | WNOWAIT);
+            int status;
+            pid_t result;
+
+            do
+            {
+                result = waitpid(pids[k], &status, 0);
+            }
+            while (result < 0 && errno == EINTR);
+
+            if (result > 0 && log_fd >= 0)
+            {
+                char msg[64];
+                int len = snprintf(msg, sizeof(msg),
+                                   "Child process %d terminated\n",
+                                   (int)result);
+                write(log_fd, msg, len);
+            }
         }
     }
+
+    sigprocmask(SIG_SETMASK, &old_mask, NULL);
 
     clear();
 }
