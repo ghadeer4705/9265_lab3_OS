@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cctype>
 
+
 static bool readWord(const std::string &input, size_t &i, std::string &word, bool &quoted)
 {
     word.clear();
@@ -14,22 +15,70 @@ static bool readWord(const std::string &input, size_t &i, std::string &word, boo
     if (i >= input.size())
         return false;
 
-    while (i < input.size() && !isspace((unsigned char)input[i]))
+    if (input[i] == '|')
+    {
+        word = "|";
+        i++;
+        return true;
+    }
+
+    if (input[i] == '<')
+    {
+        word = "<";
+        i++;
+        return true;
+    }
+
+    if (input[i] == '>')
+    {
+        word = ">";
+        i++;
+
+        if (i < input.size() && input[i] == '>')
+        {
+            word += ">";
+            i++;
+        }
+
+        if (i < input.size() && input[i] == '&')
+        {
+            word += "&";
+            i++;
+        }
+
+        return true;
+    }
+
+    if (input[i] == '2' && i + 1 < input.size() && input[i + 1] == '>')
+    {
+        word = "2>";
+        i += 2;
+        return true;
+    }
+
+    while (i < input.size() && !isspace((unsigned char)input[i]) &&
+           input[i] != '|' && input[i] != '<' && input[i] != '>')
     {
         if (input[i] == '"' || input[i] == '\'')
         {
             char quote = input[i++];
             quoted = true;
+
             while (i < input.size() && input[i] != quote)
                 word += input[i++];
+
             if (i < input.size())
                 i++;
         }
         else
+        {
             word += input[i++];
+        }
     }
+
     return true;
 }
+
 std::vector<Token> tokenize(const std::string &input)
 {
     std::vector<Token> tokens;
